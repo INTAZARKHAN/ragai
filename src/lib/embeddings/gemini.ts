@@ -22,35 +22,113 @@ const ai = new GoogleGenAI({
 const MODEL = "gemini-embedding-2";
 const DIMENSIONS = 1536;
 
-export const geminiEmbeddingProvider: EmbeddingProvider = {
-  name: "gemini",
+const REQUEST_TIMEOUT_MS = 12_000;
+const MAX_RETRIES = 1;
 
-  dimensions: DIMENSIONS,
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
-  async embed(text: string) {
-    const result = await ai.models.embedContent({
-      model: MODEL,
-      contents: text,
-      config: {
-        outputDimensionality: DIMENSIONS,
-      },
-    });
+async function embedWithTimeout(
+  text: string
+): Promise<number[]> {
+  let lastError: unknown;
 
-    const embedding =
-      result.embeddings?.[0]?.values;
+  for (
+    let attempt = 0;
+    attempt <= MAX_RETRIES;
+    attempt++
+  ) {
+    try {
+      const request = ai.models.embedContent({
+        model: MODEL,
+        contents: text,
+        config: {
+          outputDimensionality: DIMENSIONS,
+        },
+      });
 
-    if (!embedding) {
-      throw new Error(
-        "Gemini returned no embedding"
+      const timeout = new Promise<never>(
+        (_, reject) => {
+          setTimeout(() => {
+            reject(
+              new Error(
+                `Gemini embedding request timed out after ${REQUEST_TIMEOUT_MS}ms`
+              )
+            );
+          }, REQUEST_TIMEOUT_MS);
+        }
       );
+
+      const result = await Promise.race([
+        request,
+        timeout,
+      ]);
+
+      const embedding =
+        result.embeddings?.[0]?.values;
+
+      if (!embedding) {
+        throw new Error(
+          "Gemini returned no embedding"
+        );
+      }
+
+      return embedding;
+    } catch (error) {
+      lastError = error;
+
+      console.warn(
+        `Gemini embedding attempt ${
+          attempt + 1
+        }/${MAX_RETRIES + 1} failed:`,
+        error
+      );
+
+      if (attempt < MAX_RETRIES) {
+        await sleep(500);
+      }
     }
+  }
 
-    return embedding;
-  },
+  throw new Error(
+    `Gemini embedding failed after ${
+      MAX_RETRIES + 1
+    } attempts: ${
+      lastError instanceof Error
+        ? lastError.message
+        : String(lastError)
+    }`
+  );
+}
 
-  async embedMany(texts: string[]) {
-    return Promise.all(
-      texts.map((text) => this.embed(text))
-    );
-  },
-};
+export const geminiEmbeddingProvider: EmbeddingProvider =
+  {
+    name: "gemini",
+
+    dimensions: DIMENSIONS,
+
+    async embed(text: string) {
+      if (!text.trim()) {
+        throw new Error(
+          "Cannot create embedding for empty text"
+        );
+      }
+
+      return embedWithTimeout(text);
+    },
+
+    async embedMany(texts: string[]) {
+      const results: number[][] = [];
+
+      for (const text of texts) {
+        results.push(
+          await embedWithTimeout(text)
+        );
+      }
+
+      return results;
+    },
+  };

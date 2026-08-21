@@ -3,7 +3,7 @@ import {
   validateAgentPlan,
 } from "./reasoning-planner";
 
-import { openai } from "@/lib/openai";
+import { getOpenAI } from "@/lib/openai";
 
 import {
   AgentPlan,
@@ -86,6 +86,8 @@ const FALLBACK_PLAN: AgentPlan = {
 
   requiresVerification: true,
 };
+
+const PLANNER_TIMEOUT_MS = 12_000;
 
 function cleanJson(
   content: string
@@ -175,27 +177,81 @@ function isValidPlan(
   return true;
 }
 
+function createTimeoutError(): Error {
+  return new Error(
+    `Agent planner timed out after ${PLANNER_TIMEOUT_MS}ms`
+  );
+}
+
 export async function createAgentPlan(
   question: string
 ): Promise<AgentPlan> {
+  const openai = getOpenAI();
+
+  /*
+   * If OpenAI is unavailable, immediately
+   * use the deterministic planner.
+   */
+  if (!openai) {
+    console.warn(
+      "OpenAI not configured. Using deterministic fallback."
+    );
+
+    return createFallbackPlan(
+      question
+    );
+  }
+
   try {
+    console.log(
+      "REASONING PLANNER: Asking OpenAI for tool plan..."
+    );
+
+    /*
+     * Race the OpenAI request against our own
+     * application-level timeout.
+     */
+    const request =
+      openai.chat.completions.create(
+        {
+          model: "gpt-4.1-mini",
+
+          temperature: 0,
+
+          messages: [
+            {
+              role: "system",
+              content: SYSTEM_PROMPT,
+            },
+            {
+              role: "user",
+              content: question,
+            },
+          ],
+        },
+        {
+          timeout:
+            PLANNER_TIMEOUT_MS,
+          maxRetries: 0,
+        }
+      );
+
+    const timeout =
+      new Promise<never>(
+        (_, reject) => {
+          setTimeout(() => {
+            reject(
+              createTimeoutError()
+            );
+          }, PLANNER_TIMEOUT_MS);
+        }
+      );
+
     const response =
-      await openai.chat.completions.create({
-        model: "gpt-4.1-mini",
-
-        temperature: 0,
-
-        messages: [
-          {
-            role: "system",
-            content: SYSTEM_PROMPT,
-          },
-          {
-            role: "user",
-            content: question,
-          },
-        ],
-      });
+      await Promise.race([
+        request,
+        timeout,
+      ]);
 
     const content =
       response.choices[0]
@@ -237,6 +293,10 @@ export async function createAgentPlan(
       );
     }
 
+    console.log(
+      "REASONING PLANNER: Valid plan received."
+    );
+
     return validateAgentPlan(
       parsed
     );
@@ -246,8 +306,12 @@ export async function createAgentPlan(
         status?: number;
         code?: string;
         type?: string;
+        message?: string;
       };
 
+    /*
+     * Rate limit / quota.
+     */
     if (
       apiError.status === 429 ||
       apiError.code ===
@@ -264,8 +328,55 @@ export async function createAgentPlan(
       );
     }
 
+    /*
+     * Timeout.
+     */
+    if (
+      apiError.message?.includes(
+        "timed out"
+      ) ||
+      apiError.code ===
+        "ETIMEDOUT" ||
+      apiError.code ===
+        "ECONNABORTED"
+    ) {
+      console.warn(
+        "OpenAI reasoning planner timed out. Using deterministic fallback."
+      );
+
+      return createFallbackPlan(
+        question
+      );
+    }
+
+    /*
+     * Network / connection errors.
+     */
+    if (
+      apiError.code ===
+        "ECONNRESET" ||
+      apiError.code ===
+        "ENETUNREACH" ||
+      apiError.code ===
+        "EAI_AGAIN" ||
+      apiError.code ===
+        "UND_ERR_CONNECT_TIMEOUT"
+    ) {
+      console.warn(
+        "OpenAI network connection failed. Using deterministic fallback."
+      );
+
+      return createFallbackPlan(
+        question
+      );
+    }
+
+    /*
+     * Any unexpected planner error should
+     * never stop the complete agent.
+     */
     console.error(
-      "Reasoning planner failed:",
+      "Reasoning planner failed. Using deterministic fallback:",
       error
     );
 
