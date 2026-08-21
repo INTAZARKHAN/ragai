@@ -1,0 +1,14 @@
+{
+  "events": [
+    {
+      "title": "Fee Updated",
+      "description": "Monthly fee increased from 5000 to 7000",
+      "date": "2026-08-19"
+    },
+    {
+      "title": "Emergency Leave Policy",
+      "description": "3 extra emergency leaves approved",
+      "date": "2026-08-19"
+    }
+  ]
+}
