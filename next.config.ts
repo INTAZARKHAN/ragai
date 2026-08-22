@@ -1,8 +1,16 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  
+  reactStrictMode: true,
+  typescript: {
+    tsconfigPath: './tsconfig.json',
+  },
+  eslint: {
+    dirs: ['app', 'components', 'lib', 'scripts'],
+  },
+  experimental: {
+    reactCompiler: true,
+  },
 };
 
 export default nextConfig;
