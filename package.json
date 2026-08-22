@@ -8,8 +8,6 @@
     "start": "next start",
     "lint": "eslint",
     "ingest": "tsx scripts/ingest.ts"
-    
-
   },
   "dependencies": {
     "@google/genai": "^2.17.1",
@@ -18,7 +16,7 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "lucide-react": "^1.31.0",
-    "next": "16.5.4",
+    "next": "^15.5.4",
     "next-auth": "^5.0.0-beta.32",
     "openai": "^7.4.0",
     "pdf-parse": "^2.4.5",
@@ -38,7 +36,7 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.5.4",
+    "eslint-config-next": "^15.5.4",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
     "typescript": "^5"
