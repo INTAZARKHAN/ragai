@@ -1,4 +1,4 @@
-import { qdrant } from "@/lib/qdrant/client";
+import { getQdrantClient } from "@/lib/qdrant/client";
 import { embeddingProvider } from "@/lib/embeddings";
 import { COLLECTION_NAME } from "@/lib/qdrant/collection";
 import { initializeQdrant } from "@/lib/qdrant/init";
@@ -10,6 +10,16 @@ export async function retrieveRelevantChunks(
 ): Promise<RetrievedChunk[]> {
   await initializeQdrant();
 
+  const qdrant = getQdrantClient();
+
+  if (!qdrant) {
+    console.warn(
+      "Qdrant client unavailable."
+    );
+
+    return [];
+  }
+
   const queryVector =
     await embeddingProvider.embed(query);
 
@@ -20,12 +30,15 @@ export async function retrieveRelevantChunks(
       with_payload: true,
     });
 
-  const activeResults = results.points.filter(
-    (result) => result.payload?.isActive === true
-  );
+  const activeResults =
+    results.points.filter(
+      (result) =>
+        result.payload?.isActive === true
+    );
 
   return activeResults.map((result) => {
-    const payload = result.payload ?? {};
+    const payload =
+      result.payload ?? {};
 
     return {
       id: String(result.id),
@@ -41,12 +54,14 @@ export async function retrieveRelevantChunks(
           : "",
 
       documentName:
-        typeof payload.documentName === "string"
+        typeof payload.documentName ===
+        "string"
           ? payload.documentName
           : "Unknown document",
 
       pageNumber:
-        typeof payload.pageNumber === "number"
+        typeof payload.pageNumber ===
+        "number"
           ? payload.pageNumber
           : undefined,
     };

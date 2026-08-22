@@ -1,4 +1,4 @@
-import { qdrant } from "./client";
+import { getQdrantClient } from "./client";
 
 export const COLLECTION_NAME =
   "company_knowledge";
@@ -6,6 +6,15 @@ export const COLLECTION_NAME =
 const VECTOR_SIZE = 1536;
 
 export async function ensureCollection() {
+  const qdrant = getQdrantClient();
+
+  if (!qdrant) {
+    console.warn(
+      "Qdrant unavailable. Collection check skipped."
+    );
+    return;
+  }
+
   const collections =
     await qdrant.getCollections();
 
@@ -20,7 +29,6 @@ export async function ensureCollection() {
     console.log(
       `Qdrant collection "${COLLECTION_NAME}" already exists.`
     );
-
     return;
   }
 

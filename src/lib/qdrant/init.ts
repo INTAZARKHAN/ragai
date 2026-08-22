@@ -7,7 +7,13 @@ export async function initializeQdrant() {
     return;
   }
 
-  await ensureCollection();
-
-  initialized = true;
+  try {
+    await ensureCollection();
+    initialized = true;
+  } catch (error) {
+    console.error(
+      "Failed to initialize Qdrant:",
+      error
+    );
+  }
 }
