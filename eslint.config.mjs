@@ -1,6 +1,14 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
+import nextPlugin from "eslint-config-next";
+
+export default [
+  ...nextPlugin.configs["core-web-vitals"],
+];
 import next from 'eslint-config-next/core-web-vitals.js' 
+import { defineConfig } from "eslint/config";
+import next from "eslint-config-next/core-web-vitals.js"; //.js lagao
+export default [];
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,

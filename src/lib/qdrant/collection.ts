@@ -1,5 +1,4 @@
 import { getQdrantClient } from "./client";
-
 export const COLLECTION_NAME =
   "company_knowledge";
 

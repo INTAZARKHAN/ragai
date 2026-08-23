@@ -7,13 +7,20 @@ import crypto from "node:crypto";
 import { parseTextFile } from "./parser";
 import { chunkText } from "./chunker";
 import { embeddingProvider } from "../embeddings";
-import { qdrant } from "../qdrant/client";
+import { getQdrantClient } from "../qdrant/client";
 import { COLLECTION_NAME } from "../qdrant/collection";
+
 
 const DOCUMENTS_DIR = path.join(
   process.cwd(),
   "documents"
 );
+const qdrant = getQdrantClient();
+
+if (!qdrant) {
+  throw new Error("Qdrant client unavailable");
+}
+
 
 export async function ingestDocuments() {
   console.log("");

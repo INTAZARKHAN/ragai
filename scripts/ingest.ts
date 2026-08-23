@@ -4,10 +4,15 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 import { parseTextFile } from "../src/lib/documents/parser";
-import { chunkText } from "../src/lib/documents/chunker";
+import { chunkText } from "../src/lib/rag/chunker";
 import { embeddingProvider } from "../src/lib/embeddings";
-import { qdrant } from "../src/lib/qdrant/client";
+import { getQdrantClient } from "../src/lib/qdrant/client";
 import { COLLECTION_NAME } from "../src/lib/qdrant/collection";
+const qdrant = getQdrantClient();
+
+if (!qdrant) {
+  throw new Error("Qdrant unavailable");
+}
 
 const DOCUMENTS_DIR = path.join(
   process.cwd(),

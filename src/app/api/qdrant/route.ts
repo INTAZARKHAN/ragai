@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
-import { qdrant } from "@/lib/qdrant/client";
+import { getQdrantClient } from "@/lib/qdrant/client";
+const qdrant = getQdrantClient();
 
+if (!qdrant) {
+  throw new Error("Qdrant client unavailable");
+}
 export async function GET() {
   try {
     const collections = await qdrant.getCollections();

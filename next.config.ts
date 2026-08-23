@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     dirs: ['app', 'components', 'lib', 'scripts'],
   },
   experimental: {
-    reactCompiler: true,
+  
   },
 };
 
