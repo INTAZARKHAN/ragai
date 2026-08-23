@@ -10,17 +10,10 @@ import { embeddingProvider } from "../embeddings";
 import { getQdrantClient } from "../qdrant/client";
 import { COLLECTION_NAME } from "../qdrant/collection";
 
-
 const DOCUMENTS_DIR = path.join(
   process.cwd(),
   "documents"
 );
-const qdrant = getQdrantClient();
-
-if (!qdrant) {
-  throw new Error("Qdrant client unavailable");
-}
-
 
 export async function ingestDocuments() {
   console.log("");
@@ -28,6 +21,14 @@ export async function ingestDocuments() {
   console.log("   COMPANY RAG DOCUMENT INGEST");
   console.log("================================");
   console.log("");
+
+  const qdrant = getQdrantClient();
+
+  if (!qdrant) {
+    throw new Error(
+      "Qdrant client unavailable. Check QDRANT_URL and QDRANT_API_KEY."
+    );
+  }
 
   const files = await fs.readdir(
     DOCUMENTS_DIR
@@ -38,7 +39,10 @@ export async function ingestDocuments() {
   );
 
   if (textFiles.length === 0) {
-    console.log("No TXT documents found.");
+    console.log(
+      "No TXT documents found."
+    );
+
     return {
       success: true,
       documents: 0,
@@ -60,13 +64,17 @@ export async function ingestDocuments() {
       file
     );
 
-    console.log(`Processing: ${file}`);
+    console.log(
+      `Processing: ${file}`
+    );
 
     // -----------------------------
     // 1. Read Text File
     // -----------------------------
 
-    console.log("Reading text file...");
+    console.log(
+      "Reading text file..."
+    );
 
     const parsed =
       await parseTextFile(filePath);
@@ -79,7 +87,9 @@ export async function ingestDocuments() {
     // 2. Create Chunks
     // -----------------------------
 
-    console.log("Creating chunks...");
+    console.log(
+      "Creating chunks..."
+    );
 
     const chunks = chunkText(
       parsed.text
@@ -159,9 +169,11 @@ export async function ingestDocuments() {
     totalChunks += chunks.length;
 
     console.log("");
+
     console.log(
       `✓ ${file} successfully ingested.`
     );
+
     console.log("");
   }
 

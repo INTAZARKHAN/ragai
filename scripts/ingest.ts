@@ -1,4 +1,5 @@
 import "dotenv/config";
+
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -8,11 +9,6 @@ import { chunkText } from "../src/lib/rag/chunker";
 import { embeddingProvider } from "../src/lib/embeddings";
 import { getQdrantClient } from "../src/lib/qdrant/client";
 import { COLLECTION_NAME } from "../src/lib/qdrant/collection";
-const qdrant = getQdrantClient();
-
-if (!qdrant) {
-  throw new Error("Qdrant unavailable");
-}
 
 const DOCUMENTS_DIR = path.join(
   process.cwd(),
@@ -20,11 +16,27 @@ const DOCUMENTS_DIR = path.join(
 );
 
 async function main() {
+  // --------------------------------
+  // QDRANT CLIENT
+  // --------------------------------
+
+  const qdrant = getQdrantClient();
+
+  if (!qdrant) {
+    throw new Error(
+      "Qdrant client is not available. Check QDRANT_URL and QDRANT_API_KEY."
+    );
+  }
+
   console.log("");
   console.log("================================");
   console.log("   COMPANY RAG DOCUMENT INGEST");
   console.log("================================");
   console.log("");
+
+  // --------------------------------
+  // READ DOCUMENTS DIRECTORY
+  // --------------------------------
 
   const files = await fs.readdir(
     DOCUMENTS_DIR
@@ -37,10 +49,13 @@ async function main() {
   if (textFiles.length === 0) {
     console.log("No TXT documents found.");
     console.log("");
+
     console.log(
       `Add TXT files to: ${DOCUMENTS_DIR}`
     );
+
     console.log("");
+
     return;
   }
 
@@ -50,6 +65,10 @@ async function main() {
 
   console.log("");
 
+  // --------------------------------
+  // PROCESS EACH DOCUMENT
+  // --------------------------------
+
   for (const file of textFiles) {
     const filePath = path.join(
       DOCUMENTS_DIR,
@@ -57,12 +76,15 @@ async function main() {
     );
 
     console.log(`Processing: ${file}`);
+    console.log("");
 
-    // -----------------------------
-    // 1. Read Text File
-    // -----------------------------
+    // --------------------------------
+    // 1. READ TEXT FILE
+    // --------------------------------
 
-    console.log("Reading text file...");
+    console.log(
+      "Reading text file..."
+    );
 
     const parsed =
       await parseTextFile(filePath);
@@ -71,11 +93,15 @@ async function main() {
       `Extracted ${parsed.text.length} characters.`
     );
 
-    // -----------------------------
-    // 2. Create Chunks
-    // -----------------------------
+    console.log("");
 
-    console.log("Creating chunks...");
+    // --------------------------------
+    // 2. CREATE CHUNKS
+    // --------------------------------
+
+    console.log(
+      "Creating chunks..."
+    );
 
     const chunks = chunkText(
       parsed.text
@@ -85,17 +111,21 @@ async function main() {
       `Created ${chunks.length} chunks.`
     );
 
+    console.log("");
+
     if (chunks.length === 0) {
       console.log(
         "No text chunks found. Skipping document."
       );
 
+      console.log("");
+
       continue;
     }
 
-    // -----------------------------
-    // 3. Create New Version
-    // -----------------------------
+    // --------------------------------
+    // 3. CREATE NEW VERSION
+    // --------------------------------
 
     const version = Date.now();
 
@@ -103,9 +133,11 @@ async function main() {
       `New version: ${version}`
     );
 
-    // -----------------------------
-    // 4. Find Previous Active Version
-    // -----------------------------
+    console.log("");
+
+    // --------------------------------
+    // 4. FIND PREVIOUS ACTIVE VERSION
+    // --------------------------------
 
     console.log(
       "Checking for previous active version..."
@@ -137,9 +169,9 @@ async function main() {
         }
       );
 
-    // -----------------------------
-    // 5. Disable Previous Version
-    // -----------------------------
+    // --------------------------------
+    // 5. DISABLE PREVIOUS VERSION
+    // --------------------------------
 
     if (
       existingActivePoints.length > 0
@@ -173,9 +205,11 @@ async function main() {
       );
     }
 
-    // -----------------------------
-    // 6. Create Embeddings
-    // -----------------------------
+    console.log("");
+
+    // --------------------------------
+    // 6. CREATE EMBEDDINGS
+    // --------------------------------
 
     console.log(
       "Creating embeddings..."
@@ -189,6 +223,10 @@ async function main() {
       i++
     ) {
       const chunk = chunks[i];
+
+      console.log(
+        `Embedding ${i + 1}/${chunks.length}`
+      );
 
       const vector =
         await embeddingProvider.embed(
@@ -217,15 +255,13 @@ async function main() {
             new Date().toISOString(),
         },
       });
-
-      console.log(
-        `Embedding ${i + 1}/${chunks.length}`
-      );
     }
 
-    // -----------------------------
-    // 7. Upload New Version
-    // -----------------------------
+    console.log("");
+
+    // --------------------------------
+    // 7. UPLOAD NEW VERSION
+    // --------------------------------
 
     console.log(
       "Uploading new version to Qdrant..."
@@ -235,6 +271,7 @@ async function main() {
       COLLECTION_NAME,
       {
         wait: true,
+
         points,
       }
     );
@@ -252,6 +289,10 @@ async function main() {
     console.log("");
   }
 
+  // --------------------------------
+  // COMPLETED
+  // --------------------------------
+
   console.log(
     "================================"
   );
@@ -267,11 +308,18 @@ async function main() {
   console.log("");
 }
 
+// --------------------------------
+// RUN INGESTION
+// --------------------------------
+
 main().catch((error) => {
   console.error("");
+
   console.error(
     "Document ingestion failed:"
   );
+
   console.error(error);
+
   process.exit(1);
 });
