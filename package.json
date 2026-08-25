@@ -12,11 +12,12 @@
   "dependencies": {
     "@google/genai": "^2.17.1",
     "@prisma/client": "^6.19.3",
+    "@prisma/engines": "^6.19.3",
     "@qdrant/js-client-rest": "^1.19.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "lucide-react": "^1.31.0",
-    "next": "15.5.6",
+    "next": "15.5.23",
     "next-auth": "^5.0.0-beta.32",
     "openai": "^7.4.0",
     "pdf-parse": "^2.4.5",
@@ -36,7 +37,7 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^15.5.6",
+    "eslint-config-next": "^15.5.23",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
     "typescript": "^5"
