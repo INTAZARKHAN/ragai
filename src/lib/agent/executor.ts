@@ -1,72 +1,51 @@
 import {
-  AgentPlan,
+  toolRegistry,
+} from "./tools/registry";
+
+import type {
+  AgentContext,
   AgentResult,
-  VerificationResult,
+  ToolName,
 } from "./types";
 
-import {
-  ragTool,
-  calculatorTool,
-  companyEventsTool,
-} from "./tools";
-
-import {
-  memoryTool,
-} from "./memory-tool";
-
-import {
-  runAgentOrchestrator,
-} from "./orchestrator";
-
-import {
-  remember,
-} from "./memory";
-
-export async function executeTool(
-  tool: AgentPlan["steps"][number]["tool"],
-  question: string
+export async function executeAgentTool(
+  toolName: ToolName,
+  question: string,
+  context: AgentContext
 ): Promise<AgentResult> {
-  switch (tool) {
-    case "rag":
-      return ragTool(question);
+  const tool =
+    toolRegistry.get(
+      toolName
+    );
 
-    case "events":
-      return companyEventsTool(
-        question
-      );
-
-    case "calculator":
-      return calculatorTool(
-        question
-      );
-
-    case "memory":
-      return memoryTool(question);
-
-    default:
-      throw new Error(
-        `Unsupported agent tool: ${tool}`
-      );
+  if (!tool) {
+    throw new Error(
+      `Unknown agent tool: ${toolName}`
+    );
   }
-}
 
-export async function runAgent(
-  question: string
-): Promise<VerificationResult> {
+  console.log(
+    "TOOL EXECUTION START:",
+    {
+      tool: toolName,
+      requestId:
+        context.requestId,
+    }
+  );
+
   const result =
-    await runAgentOrchestrator(
-      question
+    await tool.execute(
+      question,
+      context
     );
 
-  if (
-    result.answer &&
-    result.answer.trim()
-  ) {
-    remember(
-      question,
-      result.answer
-    );
-  }
+  console.log(
+    "TOOL EXECUTION END:",
+    {
+      tool: toolName,
+      success: true,
+    }
+  );
 
   return result;
 }
